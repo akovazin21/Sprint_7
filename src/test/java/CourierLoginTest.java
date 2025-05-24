@@ -3,124 +3,64 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-public class CourierLoginTest {
-    private final String baseUrl = "https://qa-scooter.praktikum-services.ru";
-    private final String courierLoginUrl = "/api/v1/courier/login";
-    private final String courierCreateUrl = "/api/v1/courier";
-
+public class CourierLoginTest extends BaseTest {
+    private final Courier validCourier = new Courier("testCourierLogin1234", "password123", "Test");
+    private final CourierApi courierApi = new CourierApi();
     private int courierId;
-    private String login = "testCourierLogin1234";
-    private String password = "password123";
-    private String firstName = "Test";
 
     @Before
     public void setUp() {
-        // Создаем курьера перед тестами
-        String requestBody = String.format(
-                "{\"login\":\"%s\",\"password\":\"%s\",\"firstName\":\"%s\"}",
-                login, password, firstName);
-
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierCreateUrl);
-
-        courierId = getCourierId(login, password);
+        courierId = courierApi.createCourier(validCourier);
     }
 
     @After
     public void tearDown() {
-        // Удаляем курьера после тестов
-        given()
-                .baseUri(baseUrl)
-                .when()
-                .delete(courierCreateUrl + "/" + courierId)
-                .then()
-                .statusCode(200);
+        if (courierId != 0) {
+            courierApi.deleteCourier(courierId);
+        }
     }
 
     @Test
     @DisplayName("Успешный логин курьера")
     public void testCourierLoginSuccess() {
-        String requestBody = String.format("{\"login\":\"%s\",\"password\":\"%s\"}", login, password);
-
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierLoginUrl)
+        int id = courierApi.loginCourier(validCourier)
                 .then()
-                .statusCode(200)
-                .body("id", notNullValue());
+                .statusCode(SC_OK)
+                .extract()
+                .path("id");
+
+        assertThat(id, notNullValue());
     }
 
     @Test
     @DisplayName("Логин с неверным паролем")
     public void testCourierLoginWrongPassword() {
-        String requestBody = String.format("{\"login\":\"%s\",\"password\":\"wrongpass\"}", login);
-
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierLoginUrl)
+        courierApi.loginCourier(new Courier(validCourier.getLogin(), "wrongpass"))
                 .then()
-                .statusCode(404)
+                .statusCode(SC_NOT_FOUND)
                 .body("message", equalTo("Учетная запись не найдена"));
     }
 
     @Test
     @DisplayName("Логин без обязательного поля")
     public void testCourierLoginWithoutRequiredField() {
-        // Без пароля
-        String requestBody = String.format("{\"login\":\"%s\"}", login);
-
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierLoginUrl)
+        courierApi.loginCourier(new Courier(validCourier.getLogin(), null))
                 .then()
-                .statusCode(400)
+                .statusCode(SC_BAD_REQUEST)
                 .body("message", equalTo("Недостаточно данных для входа"));
     }
 
     @Test
     @DisplayName("Логин несуществующего курьера")
     public void testNonExistentCourierLogin() {
-        String requestBody = "{\"login\":\"nonexistent\",\"password\":\"pass\"}";
-
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierLoginUrl)
+        courierApi.loginCourier(new Courier("nonexistent", "pass"))
                 .then()
-                .statusCode(404)
+                .statusCode(SC_NOT_FOUND)
                 .body("message", equalTo("Учетная запись не найдена"));
-    }
-
-    private int getCourierId(String login, String password) {
-        String requestBody = String.format("{\"login\":\"%s\",\"password\":\"%s\"}", login, password);
-
-        return given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(requestBody)
-                .when()
-                .post(courierLoginUrl)
-                .then()
-                .extract()
-                .path("id");
     }
 }
