@@ -1,8 +1,8 @@
+// OrderApi.java
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
-import static org.apache.http.HttpStatus.*;
 
 public class OrderApi {
     private final String orderCreateUrl = "/api/v1/orders";

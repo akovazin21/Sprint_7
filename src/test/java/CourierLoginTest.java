@@ -1,3 +1,4 @@
+// CourierLoginTest.java
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.After;
 import org.junit.Before;
@@ -15,13 +16,18 @@ public class CourierLoginTest extends BaseTest {
 
     @Before
     public void setUp() {
-        courierId = courierApi.createCourier(validCourier);
+        courierApi.createCourier(validCourier)
+                .then()
+                .statusCode(SC_CREATED);
+        courierId = courierApi.getCourierId(validCourier);
     }
 
     @After
     public void tearDown() {
         if (courierId != 0) {
-            courierApi.deleteCourier(courierId);
+            courierApi.deleteCourier(courierId)
+                    .then()
+                    .statusCode(SC_OK);
         }
     }
 
@@ -35,6 +41,7 @@ public class CourierLoginTest extends BaseTest {
                 .path("id");
 
         assertThat(id, notNullValue());
+        assertThat(id, equalTo(courierId));
     }
 
     @Test

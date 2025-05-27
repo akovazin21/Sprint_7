@@ -1,26 +1,19 @@
+// CourierApi.java
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
-import static org.apache.http.HttpStatus.*;
 
 public class CourierApi {
     private final String courierLoginUrl = "/api/v1/courier/login";
     private final String courierCreateUrl = "/api/v1/courier";
 
     @Step("Создание курьера {courier.login}")
-    public int createCourier(Courier courier) {
-        given()
+    public Response createCourier(Courier courier) {
+        return given()
                 .body(courier)
                 .when()
-                .post(courierCreateUrl)
-                .then()
-                .statusCode(SC_CREATED);
-
-        return loginCourier(new Courier(courier.getLogin(), courier.getPassword()))
-                .then()
-                .extract()
-                .path("id");
+                .post(courierCreateUrl);
     }
 
     @Step("Логин курьера {courier.login}")
@@ -31,12 +24,18 @@ public class CourierApi {
                 .post(courierLoginUrl);
     }
 
-    @Step("Удаление курьера {courierId}")
-    public void deleteCourier(int courierId) {
-        given()
-                .when()
-                .delete(courierCreateUrl + "/" + courierId)
+    @Step("Получение ID курьера")
+    public int getCourierId(Courier courier) {
+        return loginCourier(courier)
                 .then()
-                .statusCode(SC_OK);
+                .extract()
+                .path("id");
+    }
+
+    @Step("Удаление курьера {courierId}")
+    public Response deleteCourier(int courierId) {
+        return given()
+                .when()
+                .delete(courierCreateUrl + "/" + courierId);
     }
 }

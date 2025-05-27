@@ -1,3 +1,4 @@
+// OrderCreationTest.java
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -5,14 +6,12 @@ import org.junit.runners.Parameterized;
 
 import java.util.List;
 
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.hamcrest.CoreMatchers.notNullValue;
 
 @RunWith(Parameterized.class)
-public class OrderCreationTest {
-    private final String baseUrl = "https://qa-scooter.praktikum-services.ru";
-    private final String orderCreateUrl = "/api/v1/orders";
-
+public class OrderCreationTest extends BaseTest {
+    private final OrderApi orderApi = new OrderApi();
     private final String[] colors;
 
     public OrderCreationTest(String[] colors) {
@@ -44,14 +43,9 @@ public class OrderCreationTest {
                 List.of(colors)
         );
 
-        given()
-                .baseUri(baseUrl)
-                .header("Content-type", "application/json")
-                .body(order) // Сериализация объекта в JSON автоматически
-                .when()
-                .post(orderCreateUrl)
+        orderApi.createOrder(order)
                 .then()
-                .statusCode(201)
+                .statusCode(SC_CREATED)
                 .body("track", notNullValue());
     }
 }
